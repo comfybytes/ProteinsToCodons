@@ -1,11 +1,12 @@
 using Flux
-
+#TODO add Dropout
 include("Embedder.jl")
 """
 Create an Encoder Layer
 # Arguments
 - `d_model`: dimensions of the entire d_model. Default 512
 - `n_heads`: number of attention heads. Default 8
+- (optional) `activation`: Activation Function for Feed-Forward Network
 
 `d_model` must be divisible by `n_heads`.
 """

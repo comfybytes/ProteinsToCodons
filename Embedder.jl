@@ -1,3 +1,12 @@
+using BioSequences
+
+
+
+
+
+
+
+
 
 function positional_encoding(seq_length,d_model::dimension) where {dimension<:Integer}
     encoding = convert(Matrix{Float32},fill(0,(d_model,seq_length)))
