@@ -5,6 +5,7 @@ using SeqDL, SeqDL.Data, SeqDL.Util, BioSequences
 
 cds_data = extractCDS("../datafiles/celegans.fasta")
 tok = Tokenizer(cds_data)
-peptides = cds_data.peptide
+enc = Encoder(cds_data)
+peptides = cds_data.peptide[1:3]
 encoded = encode(tok,peptides)
-decoded = decode(tok,encoded)
+enc(encoded)

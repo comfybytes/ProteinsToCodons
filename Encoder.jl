@@ -1,4 +1,6 @@
 using Flux
+using SeqDL.Data
+
 #TODO add Dropout
 include("Embedder.jl")
 """
@@ -24,15 +26,18 @@ struct Encoder
 end
 
 function Encoder(
+    cds_data::CDSData,
     d_model::Int=512,
     n_heads::Int=8,
     activation=relu)
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
     d_attention = convert(Int,(d_model/n_heads))
+    len_aa_alphabet = length(cds_data.aa_alphabet)
+
     return Encoder(
         d_model,
-        Embedding(20 => d_model),
+        Embedding(len_aa_alphabet => d_model),
         Dense(d_model => d_attention,identity),
         Dense(d_model => d_attention,identity),
         Dense(d_model => d_attention,identity),
@@ -44,17 +49,17 @@ function Encoder(
     )
 end
 
-function (e::Encoder)(data) #TODO move embedding and positional_encoding to Embedder.jl
-    len_data = length(data)
+function (e::Encoder)(data)
+    seq_len, seq_num = size(data)
     data = e.embedding(data)
-    data = data + positional_encoding(len_data,e.d_model)
-    data = cat(data; dims = ndims(data) +1) #TODO remove when switching to actual data
-    q = e.q_projection(data)
-    k = e.k_projection(data)
-    v = e.v_projection(data)
-    attention_output, attention_score = e.mha(q,k,v)
-    data = e.norm1(attention_output + data)
-    data_ff = e.feed_forward1(data)
-    data_ff = e.feed_forward2(data_ff)
-    e.norm2(data_ff + data)
+    println(size(data))
+    data = data + positional_encoding(seq_len,seq_num,e.d_model)
+    #q = e.q_projection(data)
+    #k = e.k_projection(data)
+    #v = e.v_projection(data)
+    #attention_output, attention_score = e.mha(q,k,v)
+    #data = e.norm1(attention_output + data)
+    #data_ff = e.feed_forward1(data)
+    #data_ff = e.feed_forward2(data_ff)
+    #e.norm2(data_ff + data)
 end
