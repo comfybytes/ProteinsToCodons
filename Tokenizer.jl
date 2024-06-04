@@ -46,12 +46,11 @@ function decode(t::Tokenizer,aa_matrix::Matrix{Int64})
     map(x -> get(t.lookup_decode,x,nothing),aa_matrix)
 end
 
-function positional_encoding(seq_length::d,seq_num::d,d_model::d) where {d<:Integer}
-    encoding = fill(0.0,(d_model,seq_length,seq_num))
+function positional_encoding(seq_len::d,seq_num::d,d_model::d) where {d<:Integer}
+    encoding = fill(0.0,(d_model,seq_len,seq_num))
     encoding = convert(Array{Float32,3},encoding)
-    
     for batch in 1:seq_num
-        for pos in batch
+        for pos in 1:seq_len
             for i in 1:2:(d_model-1)
                 term = pos/10000^(2i/d_model)
                 encoding[i,pos,batch] = sin(term)
