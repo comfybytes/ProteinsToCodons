@@ -33,6 +33,10 @@ function encode(t::Tokenizer,aa_matrix::Matrix{AminoAcid})
     map(x -> get(t.lookup_encode,x,0),aa_matrix)
 end
 
+function encode(t::Tokenizer,aa::LongAA)
+    map(x -> get(t.lookup_encode,x,0),collect(aa))
+end
+
 function encode(t::Tokenizer,aa::Vector{LongAA})
     aa_matrix = hcat(map(seq -> collect(seq),aa)...)
     encode(t,aa_matrix)
@@ -42,9 +46,10 @@ function decode(t::Tokenizer,aa_matrix::Matrix{Int64})
     map(x -> get(t.lookup_decode,x,nothing),aa_matrix)
 end
 
-function positional_encoding(seq_length,seq_num,d_model::dimension) where {dimension<:Integer}
+function positional_encoding(seq_length::d,seq_num::d,d_model::d) where {d<:Integer}
     encoding = fill(0.0,(d_model,seq_length,seq_num))
-    encoding = convert(Array{Float32, seq_num},encoding)
+    encoding = convert(Array{Float32,3},encoding)
+    
     for batch in 1:seq_num
         for pos in batch
             for i in 1:2:(d_model-1)
