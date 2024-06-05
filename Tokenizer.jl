@@ -2,48 +2,42 @@ using BioSequences
 """
 Create a Tokenizer
 # Arguments
-- `cds_data`: CDSData Custom Type
+- `alphabet`: a vector of symbols used for the Tokenizer
+# Usage
+WIP
 """
 struct Tokenizer
-    aa_alphabet::Vector{AminoAcid}
-    lookup_encode::Dict{AminoAcid, Int64}
-    lookup_decode::Dict{Int64,AminoAcid}
+    lookup_encode::Dict
+    lookup_decode::Dict
 end
 
-function Tokenizer(
-    cds_data)
-    len = length(cds_data.aa_alphabet)
-    ints = collect(1:len)
-    lookup_encode = Dict(zip(cds_data.aa_alphabet,ints))
-    lookup_decode = Dict(zip(ints,cds_data.aa_alphabet))
+function Tokenizer(alphabet)
+
+    ints = collect(1:length(alphabet))
+    lookup_encode = Dict(zip(alphabet,ints))
+    lookup_decode = Dict(zip(ints,alphabet))
+
     return Tokenizer(
-        cds_data.aa_alphabet,
         lookup_encode,
         lookup_decode
     )
 end
 
-"""
-Encodes a Vector{LongAA} into Matrix{AminoAcid}
-# Arguments
-- `t::Tokenizer`: 
-- `aa`: cds_data.peptide
-"""
-function encode(t::Tokenizer,aa_matrix::Matrix{AminoAcid})
-    map(x -> get(t.lookup_encode,x,0),aa_matrix)
+function (tok::Tokenizer)(matrix::T) where T<:Union{Matrix{DNA}, Matrix{AminoAcid}}
+    map(t -> get(tok.lookup_encode,t,0),matrix)
 end
 
-function encode(t::Tokenizer,aa::LongAA)
-    map(x -> get(t.lookup_encode,x,0),collect(aa))
+function (tok::Tokenizer)(seq::LongSequence)
+    map(t -> get(tok.lookup_encode,t,0),collect(seq))
 end
 
-function encode(t::Tokenizer,aa::Vector{LongAA})
-    aa_matrix = hcat(map(seq -> collect(seq),aa)...)
-    encode(t,aa_matrix)
+function (tok::Tokenizer)(vec::T) where T<:Union{Vector{LongDNA}, Vector{LongAA}}
+    matrix = hcat(map(t -> collect(t),vec)...)
+    tok(matrix)
 end
 
-function decode(t::Tokenizer,aa_matrix::Matrix{Int64})
-    map(x -> get(t.lookup_decode,x,nothing),aa_matrix)
+function (tok::Tokenizer)(matrix::Matrix{Int64})
+    map(t -> get(tok.lookup_decode,t,nothing),matrix)
 end
 
 function positional_encoding(seq_len::d,seq_num::d,d_model::d) where {d<:Integer}
