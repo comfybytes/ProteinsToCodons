@@ -1,27 +1,22 @@
 using Flux
 
-#TODO add Dropout
-"""
-Create an Encoder Layer
-# Arguments
-- `d_model`: dimensions of the entire d_model. Default 512
-- `n_heads`: number of attention heads. Default 8
-- (optional) `activation`: Activation Function for Feed-Forward Network
-
-`d_model` must be divisible by `n_heads`.
-"""
-struct Encoder
+struct Decoder
     q_projection::Dense
     k_projection::Dense
     v_projection::Dense
+    masked_q_projection::Dense
+    masked_k_projection::Dense
+    masked_v_projection::Dense
     feed_forward1::Dense
     feed_forward2::Dense
+    masked_mha::MultiHeadAttention
     mha::MultiHeadAttention
     norm1::LayerNorm
     norm2::LayerNorm
+    norm3::LayerNorm
 end
 
-function Encoder(
+function Decoder(
     d_model::Int=512,
     d_inner::Int=2048,
     n_heads::Int=8,
@@ -30,25 +25,23 @@ function Encoder(
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
     d_attention = convert(Int, (d_model / n_heads))
 
-    return Encoder(
+    return Decoder(
+        Dense(d_model => d_attention, identity),
+        Dense(d_model => d_attention, identity),
+        Dense(d_model => d_attention, identity),
         Dense(d_model => d_attention, identity),
         Dense(d_model => d_attention, identity),
         Dense(d_model => d_attention, identity),
         Dense(d_model => d_inner, activation),
         Dense(d_inner => d_model, identity),
         MultiHeadAttention(d_attention => d_model => d_model, nheads=n_heads),
+        MultiHeadAttention(d_attention => d_model => d_model, nheads=n_heads),
+        LayerNorm(d_model),
         LayerNorm(d_model),
         LayerNorm(d_model)
     )
 end
 
-function (encoder::Encoder)(data::Array{Float32,3})
-    q = encoder.q_projection(data)
-    k = encoder.k_projection(data)
-    v = encoder.v_projection(data)
-    attention_output, attention_score = encoder.mha(q, k, v)
-    data = encoder.norm1(attention_output + data)
-    data_ff = encoder.feed_forward1(data)
-    data_ff = encoder.feed_forward2(data_ff)
-    encoder.norm2(data_ff + data)
+function (decoder::Decoder)(data::Array{Float32,3}, mask)
+
 end
