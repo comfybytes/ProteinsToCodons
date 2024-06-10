@@ -19,18 +19,17 @@ struct Encoder
 end
 
 function Encoder(
-    d_model::Int=512,
-    d_inner::Int=2048,
-    n_heads::Int=8,
+    d_model::Int=240,
+    d_hidden::Int=480,
+    n_heads::Int=4,
     activation=relu)
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
-    d_attention = convert(Int, (d_model / n_heads))
 
     return Encoder(
-        Dense(d_model => d_inner, activation),
-        Dense(d_inner => d_model, identity),
-        MultiHeadAttention(d_attention => d_model => d_model, nheads=n_heads),
+        Dense(d_model => d_hidden, activation),
+        Dense(d_hidden => d_model, identity),
+        MultiHeadAttention(d_model => d_model * n_heads => d_model, nheads=n_heads),
         LayerNorm(d_model),
         LayerNorm(d_model)
     )
