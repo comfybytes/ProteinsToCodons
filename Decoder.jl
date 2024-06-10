@@ -1,12 +1,6 @@
 using Flux
 
 struct Decoder
-    q_projection::Dense
-    k_projection::Dense
-    v_projection::Dense
-    masked_q_projection::Dense
-    masked_k_projection::Dense
-    masked_v_projection::Dense
     feed_forward1::Dense
     feed_forward2::Dense
     masked_mha::MultiHeadAttention
@@ -26,12 +20,6 @@ function Decoder(
     d_attention = convert(Int, (d_model / n_heads))
 
     return Decoder(
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
         Dense(d_model => d_inner, activation),
         Dense(d_inner => d_model, identity),
         MultiHeadAttention(d_attention => d_model => d_model, nheads=n_heads),

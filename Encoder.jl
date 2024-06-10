@@ -11,9 +11,6 @@ Create an Encoder Layer
 `d_model` must be divisible by `n_heads`.
 """
 struct Encoder
-    q_projection::Dense
-    k_projection::Dense
-    v_projection::Dense
     feed_forward1::Dense
     feed_forward2::Dense
     mha::MultiHeadAttention
@@ -31,9 +28,6 @@ function Encoder(
     d_attention = convert(Int, (d_model / n_heads))
 
     return Encoder(
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
-        Dense(d_model => d_attention, identity),
         Dense(d_model => d_inner, activation),
         Dense(d_inner => d_model, identity),
         MultiHeadAttention(d_attention => d_model => d_model, nheads=n_heads),
@@ -43,11 +37,8 @@ function Encoder(
 end
 
 function (encoder::Encoder)(data::Array{Float32,3})
-    q = encoder.q_projection(data)
-    k = encoder.k_projection(data)
-    v = encoder.v_projection(data)
-    attention_output, attention_score = encoder.mha(q, k, v)
-    data = encoder.norm1(attention_output + data)
+    attention_output, attention_score = encoder.mha(data)
+    data = encoder.norm1(attention_output .+ data)
     data_ff = encoder.feed_forward1(data)
     data_ff = encoder.feed_forward2(data_ff)
     encoder.norm2(data_ff + data)
