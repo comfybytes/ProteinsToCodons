@@ -4,9 +4,9 @@ using Flux
 """
 Create an Encoder Layer
 # Arguments
-- `d_model`: dimensions of the entire d_model. Default 512
-- `n_heads`: number of attention heads. Default 8
-- (optional) `activation`: Activation Function for Feed-Forward Network
+- `d_model`: dimensions of model. input and output must be this size. Default 240
+- `n_heads`: number of attention heads. Default 4
+- (optional) `activation`: Activation Function for Feed-Forward Network. Default ReLU
 
 `d_model` must be divisible by `n_heads`.
 """
@@ -36,9 +36,9 @@ function Encoder(
 end
 
 function (encoder::Encoder)(data::Array{Float32,3})
-    attention_output, attention_score = encoder.mha(data)
-    data = encoder.norm1(attention_output .+ data)
-    data_ff = encoder.feed_forward1(data)
-    data_ff = encoder.feed_forward2(data_ff)
-    encoder.norm2(data_ff + data)
+    attention, attention_score = encoder.mha(data)
+    data = encoder.norm1(attention .+ data)
+    ff_output = encoder.feed_forward1(data)
+    ff_output = encoder.feed_forward2(ff_output)
+    encoder.norm2(ff_output + data)
 end
