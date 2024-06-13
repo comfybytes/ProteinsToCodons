@@ -30,9 +30,9 @@ function Decoder(
 end
 
 function (decoder::Decoder)(encoder_data::Array{Float32,3}, previous, mask)
-    masked_attention, attention_score = decoder.masked_mha(previous,mask=mask)
+    masked_attention, attention_score = decoder.masked_mha(previous, mask=mask)
     norm_masked_attention = decoder.norm1(masked_attention .+ previous)
-    attention, attention_score = decoder.mha(norm_masked_attention,encoder_data,encoder_data)
+    attention, attention_score = decoder.mha(norm_masked_attention, encoder_data, encoder_data)
     norm_attention = decoder.norm2(attention .+ norm_masked_attention)
     ff_output = decoder.feed_forward1(norm_attention)
     ff_output = decoder.feed_forward2(ff_output)

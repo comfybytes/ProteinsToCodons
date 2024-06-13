@@ -1,22 +1,57 @@
 include("Encoder.jl")
 include("Tokenizer.jl")
+include("Decoder.jl")
 
-using Pkg; Pkg.develop(path= "/Users/julia/Studium/Thesis/seqdl/SeqDL")
-using SeqDL, SeqDL.Data, SeqDL.Util, BioSequences
+using SeqDL, SeqDL.Data, SeqDL.Util, BioSequences, Flux
 
-cds_data = extractCDS("../datafiles/celegans.fasta")
-d_model = 512
-len_aa_alphabet = length(cds_data.aa_alphabet)
-peptides = cds_data.peptide[1:3]
 
-tok = Tokenizer(cds_data)
-emb = Embedding(len_aa_alphabet => d_model)
-enc = Encoder()
+struct Transformer
+    d_model::Int
+    in_tokenizer::Tokenizer
+    out_tokenizer::Tokenizer
+    in_embedder::Embedding
+    out_embedder::Embedding
+    encoder::Encoder
+    decoder::Decoder
+end
 
-tokenized = encode(tok,peptides)
-seq_len, seq_num = size(tokenized)
-display(tokenized)
-embedded = emb(tokenized)
-pos_encoded = embedded + positional_encoding(seq_len,seq_num,d_model)
-encoded = enc(pos_encoded)
-println(size(encoded))
+function Transformer(
+    in_alphabet,
+    out_alphabet,
+    d_model::Int=240,
+    d_hidden::Int=480,
+    n_heads::Int=4)
+
+    in_len = length(in_alphabet)
+    out_len = length(out_alphabet)
+
+    return Transformer(
+        d_model,
+        Tokenizer(in_alphabet),
+        Tokenizer(out_alphabet),
+        Embedding(in_len => d_model),
+        Embedding(out_len => d_model),
+        Encoder(d_model, d_hidden, n_heads),
+        Decoder(d_model, d_hidden, n_heads)
+    )
+end
+
+function (t::Transformer)(peptides, dna, n_layers)
+    in_tokens = t.in_tokenizer(peptides)
+    in_seq_len = size(in_tokens, 1)
+    in_seq_num = size(in_tokens, 2)
+    input = t.in_embedder(in_tokens) + positional_encoding(in_seq_len, in_seq_num, t.d_model)
+    for _ in 1:n_layers
+        input = t.encoder(input)
+    end
+
+    out_tokens = t.out_tokenizer(dna)
+    out_seq_len = size(out_tokens, 1)
+    out_seq_num = size(out_tokens, 2)
+    output = t.out_embedder(out_tokens) + positional_encoding(out_seq_len, out_seq_num, t.d_model)
+    mask = make_causal_mask(output)
+
+    for _ in 1:n_layers
+        output = t.decoder(input, output, mask)
+    end
+end
