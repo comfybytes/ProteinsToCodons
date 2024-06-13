@@ -40,7 +40,7 @@ function (tok::Tokenizer)(matrix::Matrix{Int64})
     map(t -> get(tok.lookup_decode, t, nothing), matrix)
 end
 
-function positional_encoding(seq_len::d, seq_num::d, d_model::d) where {d<:Integer}
+function positional_encoding(seq_len::d, seq_num::d, d_model::d) where {d<:Integer} #TODO: improve?
     encoding = fill(0.0, (d_model, seq_len, seq_num))
     encoding = convert(Array{Float32,3}, encoding)
     for batch in 1:seq_num
