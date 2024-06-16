@@ -17,10 +17,7 @@ function Tokenizer(alphabet)
     lookup_encode = Dict(zip(alphabet, ints))
     lookup_decode = Dict(zip(ints, alphabet))
 
-    return Tokenizer(
-        lookup_encode,
-        lookup_decode
-    )
+    Tokenizer(lookup_encode,lookup_decode)
 end
 
 function (tok::Tokenizer)(matrix::T) where {T<:Union{Matrix{DNA},Matrix{AminoAcid}}}
@@ -38,19 +35,4 @@ end
 
 function (tok::Tokenizer)(matrix::Matrix{Int64})
     map(t -> get(tok.lookup_decode, t, nothing), matrix)
-end
-
-function positional_encoding(seq_len::d, seq_num::d, d_model::d) where {d<:Integer} #TODO: improve?
-    encoding = fill(0.0, (d_model, seq_len, seq_num))
-    encoding = convert(Array{Float32,3}, encoding)
-    for batch in 1:seq_num
-        for pos in 1:seq_len
-            for i in 1:2:(d_model-1)
-                term = pos / 10000^(2i / d_model)
-                encoding[i, pos, batch] = sin(term)
-                encoding[i+1, pos, batch] = cos(term)
-            end
-        end
-    end
-    return encoding
 end

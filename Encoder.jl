@@ -18,17 +18,19 @@ struct Encoder
     drop_out::Dropout
 end
 
+Flux.@functor Encoder
+
 function Encoder(
     d_model::Int=240,
     d_hidden::Int=480,
     n_heads::Int=4,
     p_drop::Float64=0.1,
     activation=relu,
-    )
+)
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
 
-    return Encoder(
+    Encoder(
         Dense(d_model => d_hidden, activation),
         Dense(d_hidden => d_model, identity),
         MultiHeadAttention(d_model => d_model * n_heads => d_model, nheads=n_heads, dropout_prob=p_drop),
@@ -38,10 +40,10 @@ function Encoder(
     )
 end
 
-function (e::Encoder)(data::Array{Float32,3})
+function (e::Encoder)(data)
     attention, attention_score = e.mha(data)
     attention = e.drop_out(attention)
-    attention = e.norm1(attention .+ data)
+    attention = e.norm1(attention + data)
     ff_output = e.feed_forward1(attention)
     ff_output = e.feed_forward2(ff_output)
     ff_output = e.drop_out(ff_output)
