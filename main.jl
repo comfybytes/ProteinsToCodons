@@ -8,7 +8,7 @@ using SeqDL, SeqDL.Data, SeqDL.Util, BioSequences, Flux
 
 cds_data = extractCDS("../datafiles/celegans.fasta")
 
-model = Transformer(cds_data.aa_alphabet, cds_data.nt_alphabet, 240, 480, 4)
+model = Transformer(cds_data.aa_alphabet, cds_data.nt_alphabet, 100, 200, 2, 1)
 opt_state = Flux.setup(Adam(), model)
 
 x_train = Tokenizer(cds_data.aa_alphabet)(cds_data.peptide[1:4])

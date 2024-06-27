@@ -1,51 +1,47 @@
-using Flux
+using Flux, BioSequences
 
-"""
-Create an Encoder Layer
-# Arguments
-- `d_model`: dimensions of model. input and output must be this size. Default 240
-- `n_heads`: number of attention heads. Default 4
-- (optional) `activation`: Activation Function for Feed-Forward Network. Default ReLU
+include("Block.jl")
 
-`d_model` must be divisible by `n_heads`.
-"""
 struct Encoder
-    feed_forward1::Dense
-    feed_forward2::Dense
-    mha::MultiHeadAttention
-    norm1::LayerNorm
-    norm2::LayerNorm
-    drop_out::Dropout
+    prot_embedder::Embedding
+    pos_encoder::PositionEncoding
+    attention_block::Block
+    n_layers::Int
+    dropout::Dropout
 end
 
 Flux.@functor Encoder
 
 function Encoder(
+    prot_alphabet,
     d_model::Int=240,
     d_hidden::Int=480,
     n_heads::Int=4,
+    n_layers::Int=3,
     p_drop::Float64=0.1,
     activation=relu,
-)
+    max_len::Int=1000
+    )
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
+    prot_len = length(prot_alphabet)
 
     Encoder(
-        Dense(d_model => d_hidden, activation),
-        Dense(d_hidden => d_model, identity),
-        MultiHeadAttention(d_model => d_model * n_heads => d_model, nheads=n_heads, dropout_prob=p_drop),
-        LayerNorm(d_model),
-        LayerNorm(d_model),
+        Embedding(prot_len => d_model),
+        PositionEncoding(d_model, max_len),
+        Block(d_model,d_hidden,n_heads, p_drop, activation),
+        n_layers,
         Dropout(p_drop)
     )
 end
 
-function (e::Encoder)(data)
-    attention, attention_score = e.mha(data)
-    attention = e.drop_out(attention)
-    attention = e.norm1(attention + data)
-    ff_output = e.feed_forward1(attention)
-    ff_output = e.feed_forward2(ff_output)
-    ff_output = e.drop_out(ff_output)
-    e.norm2(ff_output + attention)
+function (e::Encoder)(prots::Matrix{Int64})
+    input = e.prot_embedder(prots)
+    input = input .+ e.pos_encoder(input)
+    input = e.dropout(input)
+
+    for _ in 1:e.n_layers
+        input = e.attention_block(input)
+    end
+    input
 end
