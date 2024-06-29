@@ -44,7 +44,7 @@ function Decoder(
     )
 end
 
-function (d::Decoder)(input::Array{Float32, 3}, dna::Matrix{Int64})
+function (d::Decoder)(input::Array{Float32,3}, dna::Matrix{Int64})
     context = d.dna_embedder(dna)
     context = context .+ d.pos_encoder(context)
     context = d.dropout(context)

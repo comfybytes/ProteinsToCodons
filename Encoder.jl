@@ -21,7 +21,7 @@ function Encoder(
     p_drop::Float64=0.1,
     activation=relu,
     max_len::Int=1000
-    )
+)
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
     prot_len = length(prot_alphabet)
@@ -29,7 +29,7 @@ function Encoder(
     Encoder(
         Embedding(prot_len => d_model),
         PositionEncoding(d_model, max_len),
-        Block(d_model,d_hidden,n_heads, p_drop, activation),
+        Block(d_model, d_hidden, n_heads, p_drop, activation),
         n_layers,
         Dropout(p_drop)
     )

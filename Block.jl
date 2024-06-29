@@ -42,7 +42,7 @@ function Block(
     )
 end
 
-function (b::Block)(enc_context::Array{Float32, 3}, context::Array{Float32, 3}, mask::Matrix{Bool})
+function (b::Block)(enc_context::Array{Float32,3}, context::Array{Float32,3}, mask::Matrix{Bool})
     masked_attention, attention_score = b.masked_mha(context, mask=mask)
     masked_attention = b.norm1(masked_attention + context)
     attention, attention_score = b.mha(masked_attention, enc_context, enc_context)
@@ -50,7 +50,7 @@ function (b::Block)(enc_context::Array{Float32, 3}, context::Array{Float32, 3}, 
     forward(attention, b)
 end
 
-function (b::Block)(context::Array{Float32, 3}, mask::M=nothing) where {M<:Union{Matrix{Bool},Nothing}}
+function (b::Block)(context::Array{Float32,3}, mask::M=nothing) where {M<:Union{Matrix{Bool},Nothing}}
     attention, attention_score = b.mha(context, mask=mask)
     forward(attention, b)
 end
