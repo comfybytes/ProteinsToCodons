@@ -39,7 +39,6 @@ function (e::Encoder)(prots::Matrix{Int64})
     input = e.prot_embedder(prots)
     input = input .+ e.pos_encoder(input)
     input = e.dropout(input)
-
     for _ in 1:e.n_layers
         input = e.attention_block(input)
     end

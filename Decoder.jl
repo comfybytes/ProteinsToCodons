@@ -23,7 +23,7 @@ function Decoder(
     n_heads::Int=4,
     n_layers::Int=3,
     p_drop::Float64=0.1,
-    mask::Bool=false,
+    mask::Bool=true,
     activation=relu,
     max_len::Int=1000
 )
@@ -70,9 +70,18 @@ function (d::Decoder)(prots::Matrix{Int64})
     context
 end
 
-#function generate()
-#    logits = t.linear(input)
-#    logits = softmax(logits)
-#    logits = map(x -> x[1], argmax(logits, dims=1))
-#    reshape(logits, (size(logits, 2), size(logits, 3)))
-#end
+function (d::Decoder)(context::Array{Float32,3})
+    mask = d.mask ? make_causal_mask(context) : nothing
+
+    for _ in 1:d.n_layers
+        context = d.attention_block(context, mask)
+    end
+    context
+end
+
+function generate(output, linear::Dense)
+    logits = linear(output)
+    logits = softmax(logits)
+    logits = map(x -> x[1], argmax(logits, dims=1))
+    reshape(logits, (size(logits, 2), size(logits, 3)))
+end
