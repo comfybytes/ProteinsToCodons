@@ -30,7 +30,7 @@ function Decoder(
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
     prot_len = length(prot_alphabet)
-    dna_len = length(dna_alphabet)
+    dna_len = length(dna_alphabet)+1
 
     Decoder(
         Embedding(prot_len => d_model),
@@ -50,9 +50,26 @@ function (d::Decoder)(input::Array{Float32,3}, dna::Matrix{Int64})
     context = d.dropout(context)
 
     mask = d.mask ? make_causal_mask(context) : nothing
-
     for _ in 1:d.n_layers
         context = d.attention_block(input, context, mask)
+    end
+    context
+end
+
+function (d::Decoder)(input::Array{Float32,3}, dna::Vector{Int64})
+    dna = reshape(dna,size(dna,1),1)
+    context = d.dna_embedder(dna)
+    context = context .+ d.pos_encoder(context)
+    context = d.dropout(context)
+    for _ in 1:d.n_layers
+        context = d.attention_block(input, context)
+    end
+    context
+end
+
+function (d::Decoder)(input::Array{Float32,3}, context::Array{Float32,3})
+    for _ in 1:d.n_layers
+        context = d.attention_block(input, context)
     end
     context
 end
@@ -63,23 +80,13 @@ function (d::Decoder)(prots::Matrix{Int64})
     context = d.dropout(context)
 
     mask = d.mask ? make_causal_mask(context) : nothing
-
     for _ in 1:d.n_layers
         context = d.attention_block(context, mask)
     end
     context
 end
 
-function (d::Decoder)(context::Array{Float32,3})
-    mask = d.mask ? make_causal_mask(context) : nothing
-
-    for _ in 1:d.n_layers
-        context = d.attention_block(context, mask)
-    end
-    context
-end
-
-function generate(output, linear::Dense)
+function generate_logits(output, linear::Dense)
     logits = linear(output)
     logits = softmax(logits)
     logits = map(x -> x[1], argmax(logits, dims=1))
