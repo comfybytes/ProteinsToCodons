@@ -18,10 +18,10 @@ Flux.@functor Decoder
 function Decoder(
     prot_alphabet,
     dna_alphabet,
-    d_model::Int=240,
-    d_hidden::Int=480,
-    n_heads::Int=4,
-    n_layers::Int=3,
+    d_model::Int=4,
+    d_hidden::Int=16,
+    n_heads::Int=1,
+    n_layers::Int=2,
     p_drop::Float64=0.1,
     mask::Bool=true,
     activation=relu,
@@ -44,51 +44,25 @@ function Decoder(
     )
 end
 
-function (d::Decoder)(input::Array{Float32,3}, dna::Matrix{Int64})
-    context = d.dna_embedder(dna)
+function (d::Decoder)(enc_context::A, context::M, mask::Bool) where {A<:AbstractArray,M<:AbstractMatrix} # Function For Training
+    context = d.dna_embedder(context)
     context = context .+ d.pos_encoder(context)
     context = d.dropout(context)
 
-    mask = d.mask ? make_causal_mask(context) : nothing
+    mask = make_causal_mask(context)
+
     for _ in 1:d.n_layers
-        context = d.attention_block(input, context, mask)
+        context = d.attention_block(enc_context, context, mask)
     end
     context
 end
 
-function (d::Decoder)(input::Array{Float32,3}, dna::Vector{Int64})
-    dna = reshape(dna,size(dna,1),1)
-    context = d.dna_embedder(dna)
+function (d::Decoder)(enc_context::A, context::A) where {A<:AbstractArray} # Function For Inference
+    context = d.dna_embedder(context)
     context = context .+ d.pos_encoder(context)
     context = d.dropout(context)
     for _ in 1:d.n_layers
-        context = d.attention_block(input, context)
+        context = d.attention_block(enc_context, context)
     end
     context
-end
-
-function (d::Decoder)(input::Array{Float32,3}, context::Array{Float32,3})
-    for _ in 1:d.n_layers
-        context = d.attention_block(input, context)
-    end
-    context
-end
-
-function (d::Decoder)(prots::Matrix{Int64})
-    context = d.prot_embedder(prots)
-    context = context .+ d.pos_encoder(context)
-    context = d.dropout(context)
-
-    mask = d.mask ? make_causal_mask(context) : nothing
-    for _ in 1:d.n_layers
-        context = d.attention_block(context, mask)
-    end
-    context
-end
-
-function generate_logits(output, linear::Dense)
-    logits = linear(output)
-    logits = softmax(logits)
-    logits = map(x -> x[1], argmax(logits, dims=1))
-    reshape(logits, (size(logits, 2), size(logits, 3)))
 end

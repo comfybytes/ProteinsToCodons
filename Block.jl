@@ -22,9 +22,9 @@ end
 Flux.@functor Block
 
 function Block(
-    d_model::Int=240,
-    d_hidden::Int=480,
-    n_heads::Int=4,
+    d_model::Int=4,
+    d_hidden::Int=16,
+    n_heads::Int=1,
     p_drop::Float64=0.1,
     activation=relu,
 )
@@ -42,7 +42,7 @@ function Block(
     )
 end
 
-function (b::Block)(enc_context::Array{Float32,3}, context::Array{Float32,3}, mask::M=nothing) where {M<:Union{Matrix{Bool},Nothing}}
+function (b::Block)(enc_context::A, context::A, mask::M=nothing) where {A<:AbstractArray,M<:Union{AbstractArray{Bool}, Nothing}}
     masked_attention, attention_score = b.masked_mha(context, mask=mask)
     masked_attention = b.norm1(masked_attention + context)
     attention, attention_score = b.mha(masked_attention, enc_context, enc_context)
@@ -50,8 +50,9 @@ function (b::Block)(enc_context::Array{Float32,3}, context::Array{Float32,3}, ma
     forward(attention, b)
 end
 
-function (b::Block)(context::C, mask::M=nothing) where {M<:Union{Matrix{Bool},Nothing}, C<:Union{Array{Float32,3},Matrix{Float32}}}
-    attention, attention_score = b.mha(context, mask=mask)
+function (b::Block)(context::A) where {A<:AbstractArray}
+    attention, attention_score = b.mha(context)
+    attention = b.norm2(attention + context)
     forward(attention, b)
 end
 

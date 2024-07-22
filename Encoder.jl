@@ -14,10 +14,10 @@ Flux.@functor Encoder
 
 function Encoder(
     prot_alphabet,
-    d_model::Int=240,
-    d_hidden::Int=480,
-    n_heads::Int=4,
-    n_layers::Int=3,
+    d_model::Int=4,
+    d_hidden::Int=16,
+    n_heads::Int=1,
+    n_layers::Int=2,
     p_drop::Float64=0.1,
     activation=relu,
     max_len::Int=1000
@@ -34,7 +34,7 @@ function Encoder(
     )
 end
 
-function (e::Encoder)(prots::Matrix{Int64})
+function (e::Encoder)(prots::A) where {A<:AbstractArray}
     input = e.prot_embedder(prots)
     input = input .+ e.pos_encoder(input)
     input = e.dropout(input)
