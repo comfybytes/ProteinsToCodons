@@ -3,7 +3,7 @@ include("PosEncoding.jl")
 include("Encoder.jl")
 include("Decoder.jl")
 
-using Flux, BioSequences
+using Flux, BioSequences, CUDA, cuDNN
 
 struct Transformer
     d_model::Int
@@ -38,7 +38,8 @@ end
 function (t::Transformer)(prots::A, dna::A) where {A<:AbstractArray} # Function For Training
     enc_context = t.encoder(prots)
     dec_out = t.decoder(enc_context, dna, true)
-    logits(dec_out, t.Linear)
+    logits = t.Linear(dec_out)
+    softmax(logits)
 end
 
 function generate(sequence::A, model::Transformer) where {A<:AbstractArray} # Function For Inference
@@ -56,13 +57,4 @@ function generate(sequence::A, model::Transformer) where {A<:AbstractArray} # Fu
     popfirst!(output)
     output = reshape(output,size(output,1),1)
     convert(Matrix{Int64}, output) #change
-end 
-
-function logits(output, linear::Dense)
-    logits = linear(output)
-    logits = softmax(logits)
-    logits = argmax(logits, dims=1)
-    #TODO Fix accessing index of cartesianindex not working on CUDA
-    #logits = map(index -> Tuple(index), logits)
-    reshape(logits, (size(logits, 2), size(logits, 3)))
 end
