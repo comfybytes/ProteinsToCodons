@@ -18,8 +18,8 @@ Flux.@functor Decoder
 function Decoder(
     prot_alphabet,
     dna_alphabet,
-    d_model::Int=4,
-    d_hidden::Int=16,
+    d_model::Int=16,
+    d_hidden::Int=32,
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
@@ -50,11 +50,12 @@ function (d::Decoder)(enc_context::A, context::M, mask::Bool) where {A<:Abstract
     context = d.dropout(context)
 
     mask = make_causal_mask(context)
-
+    input = context
     for _ in 1:d.n_layers
-        context = d.attention_block(enc_context, context, mask)
+        input = context
+        input = d.attention_block(enc_context, input, mask)
     end
-    context
+    input
 end
 
 function (d::Decoder)(enc_context::A, context::A) where {A<:AbstractArray} # Function For Inference

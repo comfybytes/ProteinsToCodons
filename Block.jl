@@ -22,8 +22,8 @@ end
 Flux.@functor Block
 
 function Block(
-    d_model::Int=4,
-    d_hidden::Int=16,
+    d_model::Int=16,
+    d_hidden::Int=32,
     n_heads::Int=1,
     p_drop::Float64=0.1,
     activation=relu,

@@ -17,8 +17,8 @@ Flux.@functor Transformer
 function Transformer(
     prot_alphabet,
     dna_alphabet,
-    d_model::Int=4,
-    d_hidden::Int=16,
+    d_model::Int=16,
+    d_hidden::Int=32,
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
@@ -31,15 +31,14 @@ function Transformer(
         d_model,
         Encoder(prot_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, activation, max_len),
         Decoder(prot_alphabet, dna_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, mask, activation, max_len),
-        Dense(d_model => length(dna_alphabet))
+        Dense(d_model => length(dna_alphabet), identity)
     )
 end
 
 function (t::Transformer)(prots::A, dna::A) where {A<:AbstractArray} # Function For Training
     enc_context = t.encoder(prots)
     dec_out = t.decoder(enc_context, dna, true)
-    logits = t.Linear(dec_out)
-    softmax(logits)
+    t.Linear(dec_out)
 end
 
 function generate(sequence::A, model::Transformer) where {A<:AbstractArray} # Function For Inference

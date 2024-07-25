@@ -14,8 +14,8 @@ Flux.@functor Encoder
 
 function Encoder(
     prot_alphabet,
-    d_model::Int=4,
-    d_hidden::Int=16,
+    d_model::Int=16,
+    d_hidden::Int=32,
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
