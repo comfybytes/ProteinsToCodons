@@ -9,7 +9,6 @@ struct Decoder
     attention_block::Block
     linear::Dense
     n_layers::Int
-    mask::Bool
     dropout::Dropout
 end
 
@@ -23,7 +22,6 @@ function Decoder(
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
-    mask::Bool=true,
     activation=relu,
     max_len::Int=1000
 )
@@ -39,7 +37,6 @@ function Decoder(
         Block(d_model, d_hidden, n_heads, p_drop, activation),
         Dense(d_model => dna_len),
         n_layers,
-        mask,
         Dropout(p_drop)
     )
 end
