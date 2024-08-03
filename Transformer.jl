@@ -27,8 +27,7 @@ function Transformer(
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
-    max_len::Int=1000,
-    activation=relu
+    max_len::Int=1000
 )
 
     Transformer(
@@ -38,8 +37,8 @@ function Transformer(
         n_layers,
         p_drop,
         max_len,
-        Encoder(cds_data.aa_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, activation, max_len),
-        Decoder(cds_data.aa_alphabet, cds_data.nt_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, activation, max_len),
+        Encoder(cds_data.aa_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, max_len),
+        Decoder(cds_data.aa_alphabet, cds_data.nt_alphabet, d_model, d_hidden, n_heads, n_layers, p_drop, max_len),
         Dense(d_model => length(cds_data.nt_alphabet), identity)
     )
 end
@@ -50,24 +49,31 @@ function (t::Transformer)(prots::A, dna::A) where {A<:AbstractArray} # Function 
     t.linear(dec_out)
 end
 
-function generate(sequence::A, model::Transformer) where {A<:AbstractArray} # Function For Inference
-    model.
+function generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegpu::Bool=true) # Function For Inference
+    device = usegpu ? gpu : cpu
+
+    model = model |> device
+    aa_tokenizer = Tokenizer(cds_data.aa_alphabet)
+    dna_tokenizer = Tokenizer(cds_data.nt_alphabet)
+
+    sequence = aa_tokenizer(sequence)
     len_output = length(sequence) * 3
     sequence = reshape(sequence, size(sequence, 1), 1)
-    output = [5]
-
     enc_out = model.encoder(sequence)
+    context = [5]
     for i in 1:len_output
-        context = reshape(output,size(output,1),1)
-        logit = model.decoder(enc_out, context)
-        logit = model.linear(logit)
-        logit = softmax(logit)
-        logit = argmax(logit)
-        push!(output,Int64(logit[1]))
+        logits = reshape(context, size(context, 1), 1)
+        logits = model.decoder(enc_out, logits)
+        logits = model.linear(logits) |> cpu
+        logits = softmax(logits)
+        token = argmax(logits)
+        context = vcat(context, token[1])
+        if i == 1
+            popfirst!(context)
+        end
     end
-    popfirst!(output)
-    output = reshape(output,size(output,1),1)
-    convert(Matrix{Int64}, output) #change
+    context = dna_tokenizer(context)
+    context = LongDNA{4}(context)
 end
 
 function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, usegpu::Bool=true)
@@ -90,19 +96,20 @@ function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, use
     targets = target(cds_data.dna, dna_tokenizer)
     y_train, y_test = Flux.splitobs(targets, at=0.8)
 
-    train_set = Flux.DataLoader((x1_train, x2_train, y_train) |> device, batchsize=64, shuffle=true)
+    train_set = Flux.DataLoader((x1_train, x2_train, y_train) |> device, batchsize=128, shuffle=true)
     x1_test = Array(x1_test) |> device
     x2_test = Array(x2_test) |> device
     y_test = Array(y_test) |> device
 
-    es = Flux.early_stopping(Flux.logitcrossentropy, 4 , init_score = 1)
+    es = Flux.early_stopping(Flux.logitcrossentropy, 4 , init_score = 10)
 
     @showprogress desc="Training Model..." for epoch in 1:epochs
         Flux.train!(model, train_set, opt_state) do m, x1, x2, y
             Flux.logitcrossentropy(m(x1, x2), y)
         end
+
         if es(model(x1_test, x2_test), y_test)
-            @info "Stopped training earlier at Epoch: $epoch due to increasing Loss on test set"
+            @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing Loss on test set"
             break
         end
     end
@@ -111,8 +118,8 @@ function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, use
 end
 
 function save_model(model::Transformer, name::String, path::String="models/")
-    if !isdir("models")
-        mkdir("models")
+    if !isdir(path)
+        mkdir(path)
     end
 
     model = cpu(model)
@@ -124,7 +131,7 @@ function save_model(model::Transformer, name::String, path::String="models/")
 
     model_name = "$(name)_$(now())_$(d_model)_$(d_hidden)_$(n_heads)_$(n_layers)"
     jldsave("$(path)$(model_name).jld2"; model_state)
-    @info "Sucessfully saved model: $modelname"
+    @info "Sucessfully saved model: $model_name"
 end
 
 function load_model(name::String, cds_data::CDSData, path::String="models/")
@@ -138,7 +145,7 @@ function load_model(name::String, cds_data::CDSData, path::String="models/")
         model_state.n_layers,
         model_state.p_drop,
         model_state.max_len)
-    Flux.loadmodel!(model, model_state);
+    Flux.loadmodel!(model, model_state)
 end
 
 function read_cds(species::String)

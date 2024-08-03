@@ -26,13 +26,12 @@ function Block(
     d_hidden::Int=32,
     n_heads::Int=1,
     p_drop::Float64=0.1,
-    activation=relu,
 )
 
     d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
 
     Block(
-        Dense(d_model => d_hidden, activation),
+        Dense(d_model => d_hidden, relu),
         Dense(d_hidden => d_model, identity),
         MultiHeadAttention(d_model, nheads=n_heads, dropout_prob=p_drop),
         MultiHeadAttention(d_model, nheads=n_heads, dropout_prob=p_drop),

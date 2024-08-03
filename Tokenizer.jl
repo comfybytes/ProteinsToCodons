@@ -35,8 +35,8 @@ function (tok::Tokenizer)(vec::T) where {T<:Union{Vector{LongDNA},Vector{LongAA}
     tok(matrix)
 end
 
-function (tok::Tokenizer)(matrix::Matrix{Int64})
-    map(t -> get(tok.lookup_decode, t, 0), matrix)
+function (tok::Tokenizer)(array::T) where {T<:Union{Matrix{Int64},Vector{Int64}}}
+    map(t -> get(tok.lookup_decode, t, 0), array)
 end
 
 function target(vec::Vector{LongDNA}, tok::Tokenizer)
