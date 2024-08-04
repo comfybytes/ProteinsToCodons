@@ -62,3 +62,10 @@ function (d::Decoder)(enc_context::A, context::M) where {A<:AbstractArray, M<:Ab
     end
     context
 end
+
+function (d::Decoder)(enc_context::A, context::A) where {A<:AbstractArray} # Function For Inference
+    for block in d.attention_blocks
+        context = block(enc_context, context)
+    end
+    context
+end

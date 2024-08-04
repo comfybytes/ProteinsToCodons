@@ -6,9 +6,9 @@ using Pkg;
 Pkg.develop(path="./SeqDL");
 
 cds_data = read_cds("ecoli")
-model = Transformer(cds_data, 16, 32, 1, 4)
+model = Transformer(cds_data, 64, 128, 1, 6)
 model = train_model(model, cds_data, 100, true)
-#save_model(model, "ecoli")
+save_model(model, "ecoli")
 
 prediction = generate(cds_data.peptide[17], model, cds_data)
 display(prediction)

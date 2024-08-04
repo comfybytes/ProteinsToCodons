@@ -16,7 +16,7 @@ function positional_encoding(d_model::Int, max_len::Int=1000)
     encoding = Matrix{Float32}(undef, d_model, max_len)
     for pos in 1:max_len
         for dim in 1:2:(d_model-1)
-            term = pos / 10000^(2 * dim / d_model)
+            term = pos / 10000^(dim / d_model)
             encoding[dim, pos] = sin(term)
             encoding[dim+1, pos] = cos(term)
         end
@@ -29,5 +29,5 @@ function (p::PositionEncoding)(x::AbstractArray)
     max_len = size(p.encoding, 2)
     max_len >= seq_len || throw(ArgumentError("seq_len = $(seq_len) exceeds maximum position encoding length of $(max_len)"))
 
-    p.encoding[:, 1:seq_len]
+    p.encoding[:, 1:seq_len, 1]
 end

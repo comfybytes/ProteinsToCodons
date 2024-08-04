@@ -35,11 +35,11 @@ function Encoder(
 end
 
 function (e::Encoder)(prots::A) where {A<:AbstractArray}
-    input = e.prot_embedder(prots)
-    input = input .+ e.pos_encoder(input)
-    input = e.dropout(input)
+    context = e.prot_embedder(prots)
+    context = context .+ e.pos_encoder(context)
+    context = e.dropout(context)
     for block in e.attention_blocks
-        input = block(input)
+        context = block(context)
     end
-    input
+    context
 end

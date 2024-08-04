@@ -16,6 +16,7 @@ struct Block
     mha::MultiHeadAttention
     norm1::LayerNorm
     norm2::LayerNorm
+    norm3::LayerNorm
     dropout::Dropout
 end
 
@@ -35,6 +36,7 @@ function Block(
         Dense(d_hidden => d_model, identity),
         MultiHeadAttention(d_model, nheads=n_heads, dropout_prob=p_drop),
         MultiHeadAttention(d_model, nheads=n_heads, dropout_prob=p_drop),
+        LayerNorm(d_model),
         LayerNorm(d_model),
         LayerNorm(d_model),
         Dropout(p_drop)
@@ -59,5 +61,5 @@ function forward(attention, b::Block)
     ff_output = b.feed_forward1(attention)
     ff_output = b.feed_forward2(ff_output)
     ff_output = b.dropout(ff_output)
-    b.norm2(ff_output + attention)
+    b.norm3(ff_output + attention)
 end
