@@ -17,5 +17,10 @@ cds_data = get_cds("ecoli")
 #display(cds_data.dna[17])
 #display(prediction)
 
-model = TransformerClassifier(cds_data, 64, 128, 1, 6)
+
+model = TransformerClassifier(cds_data, 256, 512, 1, 6)
 model = train_model(model, cds_data, 70, true)
+prediction = generate(cds_data.peptide[3900:3905], model, cds_data)
+#display(cds_data.peptide[3900])
+display(cds_data.dna[3900:3905])
+display(prediction)
