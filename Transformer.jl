@@ -72,7 +72,6 @@ function generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegp
         push!(output, token[1])
     end
     output = dna_tokenizer(output)
-    display(output)
     output = LongDNA{4}(output)
 end
 
@@ -101,16 +100,16 @@ function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, use
     x2_test = Array(x2_test) |> device
     y_test = Array(y_test) |> device
 
-    es = Flux.early_stopping(Flux.logitcrossentropy, 5 , init_score = 10)
+    #es = Flux.early_stopping(Flux.logitcrossentropy, 7 , init_score = 10)
 
     @showprogress desc="Training Model..." for epoch in 1:epochs
         Flux.train!(model, train_set, opt_state) do m, x1, x2, y
             loss = Flux.logitcrossentropy(m(x1, x2), y)
         end
-        if es(model(x1_test, x2_test), y_test)
-            @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing Loss on test set"
-            break
-        end
+        #if es(model(x1_test, x2_test), y_test)
+        #    @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing Loss on test set"
+        #    break
+        #end
     end
     @info "Finished training model"
     return model
