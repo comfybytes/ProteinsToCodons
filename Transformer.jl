@@ -3,7 +3,7 @@ include("PosEncoding.jl")
 include("Encoder.jl")
 include("Decoder.jl")
 
-using Flux, BioSequences, CUDA, cuDNN, Dates, ProgressMeter
+using Flux, BioSequences, CUDA, cuDNN, Dates, ProgressMeter, Serialization
 using SeqDL, SeqDL.Data, SeqDL.Util
 
 struct Transformer
@@ -146,19 +146,18 @@ function load_model(name::String, cds_data::CDSData, path::String="models/")
     Flux.loadmodel!(model, model_state)
 end
 
-function read_cds(species::String)
-    
-    fastaFiles = Dict(
-    "creinhardtii" => "ena-ch-reinhardtii.fasta",
-    "celegans" => "celegans.fasta",
-    "ecoli" => "Escherichia_coli.HUSEC2011CHR1.cds.all.fa",
-    "athaliana" => "Arabidopsis_thaliana.TAIR10.cds.all.fa",
-    "drerio" => "Danio_rerio.GRCz11.cds.all.fa",
-    "hsapiens" => "CCDS_nucleotide.current.fna",
-    "scerevisiae" => "orf_genomic_yeast.fasta",
+function get_cds(species::String)
+    @info "Reading CDS Data"
+    cds_files = Dict(
+        "athaliana" => "athaliana-cds-d0002.jls",
+        "celegans" => "celegans-cds-d0002.jls",
+        "creinhardtii" => "creinhardtii-cds-d0002.jls",
+        "drerio" => "drerio-cds-d0002.jls",
+        "ecoli" => "ecoli-cds-d0002.jls",
+        "hsapiens" => "hsapiens-cds-d0002.jls",
+        "scerevisiae" => "scerevisiae-cds-d0002.jls"
     )
-
-    haskey(fastaFiles, species) || throw(ArgumentError("No fasta file available for $species, check spelling"))
-    file = fastaFiles[species]
-    extractCDS("./datafiles/$(file)")
+    haskey(cds_files, species) || throw(ArgumentError("No fasta file available for $species, check spelling"))
+    file = cds_files[species]
+    deserialize("./datafiles/$(file)")
 end

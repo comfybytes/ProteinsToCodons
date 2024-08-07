@@ -4,11 +4,10 @@ using SeqDL, SeqDL.Data, SeqDL.Util
 using BioSequences, Flux, ProgressMeter, JLD2, Dates
 using CUDA, cuDNN
 
-cds_data = read_cds("ecoli")
-#display(size(cds_data.peptide[1]))
+cds_data = get_cds("ecoli")
 
-#model = Transformer(cds_data, 64, 128, 2, 6)
-#model = train_model(model, cds_data, 70, true)
+#model = Transformer(cds_data, 16, 32, 1, 1)
+#model = train_model(model, cds_data, 1, true)
 #save_model(model, "ecoli")
 
 
@@ -18,5 +17,5 @@ cds_data = read_cds("ecoli")
 #display(cds_data.dna[17])
 #display(prediction)
 
-model = TransformerClassifier(cds_data, 64, 128, 2, 6)
-train_model(model, cds_data, 70, true)
+model = TransformerClassifier(cds_data, 64, 128, 1, 6)
+model = train_model(model, cds_data, 70, true)
