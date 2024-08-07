@@ -78,11 +78,10 @@ function generate(sequences::Vector{LongAA}, model::TransformerClassifier, cds_d
     logits = model.linear(context) |> cpu
     logits = softmax(logits)
     logits = map(x -> x[1], argmax(logits, dims=1))
-    
-    logits = reshape(logits, size(logits, 3),size(logits,2))
+    logits = reshape(logits, size(logits, 2), size(logits, 3))
     output = cd_tokenizer(logits)
-    output = [join(collect(row)) for row in eachrow(output)]
-    output = map(LongDNA{4},output)
+    output = [join(collect(col)) for col in eachcol(output)]
+    output = map(LongDNA{4}, output)
 end
 
 function train_model(model::TransformerClassifier, cds_data::CDSData, epochs::Int=100, usegpu::Bool=true)
@@ -106,16 +105,16 @@ function train_model(model::TransformerClassifier, cds_data::CDSData, epochs::In
     x_test = Array(x_test) |> device
     y_test = Array(y_test) |> device
 
-    es = Flux.early_stopping(Flux.logitcrossentropy, 5 , init_score = 10)
+    es = Flux.early_stopping(Flux.logitcrossentropy, 20 , init_score = 10)
 
     @showprogress desc="Training Model..." for epoch in 1:epochs
         Flux.train!(model, train_set, opt_state) do m, x, y
             loss = Flux.logitcrossentropy(m(x), y)
         end
-        if es(model(x_test), y_test)
-            @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing loss on test set"
-            break
-        end
+        #if es(model(x_test), y_test)
+        #    @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing loss on test set"
+        #    break
+        #end
     end
     @info "Finished training model"
     return model
