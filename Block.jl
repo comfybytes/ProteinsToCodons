@@ -44,25 +44,26 @@ function Block(
 end
 
 function (b::Block)(enc_context::A, context::A, mask::M=nothing) where {A<:AbstractArray,M<:Union{AbstractArray{Bool}, Nothing}}
-    masked_attention, attention_score = b.masked_mha(context, mask=mask)
-    b.dropout(masked_attention)
-    masked_attention = b.norm1(masked_attention + context)
-    attention, attention_score = b.mha(masked_attention, enc_context, enc_context)
-    b.dropout(attention)
-    attention = b.norm2(attention + masked_attention)
+    masked_attention = b.norm1(context)
+    masked_attention, attention_score = b.masked_mha(masked_attention, mask=mask)
+    masked_attention = masked_attention .+ context
+    attention = b.norm2(masked_attention)
+    attention, attention_score = b.mha(attention, attention, enc_context)
+    attention = attention .+ masked_attention
     forward(attention, b)
 end
 
 function (b::Block)(context::A) where {A<:AbstractArray}
-    attention, attention_score = b.mha(context)
-    b.dropout(attention)
-    attention = b.norm2(attention + context)
+    attention = b.norm2(context)
+    attention, attention_score = b.mha(attention)
+    attention = attention .+ context
     forward(attention, b)
 end
 
 function forward(attention, b::Block)
-    ff_output = b.feed_forward1(attention)
+    ff_output = b.norm3(attention)
+    ff_output = b.feed_forward1(ff_output)
     ff_output = b.feed_forward2(ff_output)
     ff_output = b.dropout(ff_output)
-    b.norm3(ff_output + attention)
+    ff_output = ff_output .+ attention
 end

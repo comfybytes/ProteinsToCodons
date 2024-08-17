@@ -17,9 +17,9 @@ cds_data = get_cds("celegans")
 #display(cds_data.dna[17])
 #display(prediction)
 
-#=
-model = TransformerClassifier(cds_data, 256, 1024, 4, 1)
-model = train_model(model, cds_data, 300, true)
+
+model = TransformerClassifier(cds_data, 512, 1024, 4, 2)
+model = train_model(model, cds_data, 40, true)
 #prediction = generate(cds_data.peptide[17:19], model, cds_data)
 
 
@@ -45,5 +45,4 @@ s = SeqDL.Analysis.FullSummary(rt)
 display(s)
 
 
-#SeqDL.DL.showResults(sids[1:3], data, model_struct)
-=#
+SeqDL.DL.showResults(sids[1:3], data, model_struct)
