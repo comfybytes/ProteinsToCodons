@@ -50,23 +50,22 @@ end
 
 function CodonTokenizer()
     codons = [
-        "TTT","TTC","TTA","TTG",
-        "TCT","TCC","TCA","TCG",
-        "TAT","TAC","TAA","TAG",
-        "TGT","TGC","TGA","TGG",
-        "CTT","CTC","CTA","CTG",
-        "CCT","CCC","CCA","CCG",
-        "CAT","CAC","CAA","CAG",
-        "CGT","CGC","CGA","CGG",
-        "ATT","ATC","ATA","ATG",
-        "ACT","ACC","ACA","ACG",
-        "AAT","AAC","AAA","AAG",
-        "AGT","AGC","AGA","AGG",
-        "GTT","GTC","GTA","GTG",
-        "GCT","GCC","GCA","GCG",
-        "GAT","GAC","GAA","GAG",
-        "GGT","GGC","GGA","GGG"]
+        dna"TTT",dna"TTC",dna"TTA",dna"TTG",
+        dna"TCT",dna"TCC",dna"TCA",dna"TCG",
+        dna"TAT",dna"TAC",dna"TAA",dna"TAG",
+        dna"TGT",dna"TGC",dna"TGA",dna"TGG",
+        dna"CTT",dna"CTC",dna"CTA",dna"CTG",
+        dna"CCT",dna"CCC",dna"CCA",dna"CCG",
+        dna"CAT",dna"CAC",dna"CAA",dna"CAG",
+        dna"CGT",dna"CGC",dna"CGA",dna"CGG",
+        dna"ATT",dna"ATC",dna"ATA",dna"ATG",
+        dna"ACT",dna"ACC",dna"ACA",dna"ACG",
+        dna"AAT",dna"AAC",dna"AAA",dna"AAG",
+        dna"AGT",dna"AGC",dna"AGA",dna"AGG",
+        dna"GTT",dna"GTC",dna"GTA",dna"GTG",
+        dna"GCT",dna"GCC",dna"GCA",dna"GCG",
+        dna"GAT",dna"GAC",dna"GAA",dna"GAG",
+        dna"GGT",dna"GGC",dna"GGA",dna"GGG"]
     
-    codons = map(LongDNA{4}, codons)
     Tokenizer(codons)
 end

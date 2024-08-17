@@ -81,7 +81,7 @@ function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, use
     CUDA.device_reset!()
 
     model = model |> device
-    opt_state = Flux.setup(Adam(0.001,(0.9, 0.98)), model) |> device
+    opt_state = Flux.setup(Adam(), model) |> device
 
     aa_tokenizer = Tokenizer(cds_data.aa_alphabet)
     dna_tokenizer = Tokenizer(cds_data.nt_alphabet)

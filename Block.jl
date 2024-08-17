@@ -45,14 +45,17 @@ end
 
 function (b::Block)(enc_context::A, context::A, mask::M=nothing) where {A<:AbstractArray,M<:Union{AbstractArray{Bool}, Nothing}}
     masked_attention, attention_score = b.masked_mha(context, mask=mask)
+    b.dropout(masked_attention)
     masked_attention = b.norm1(masked_attention + context)
     attention, attention_score = b.mha(masked_attention, enc_context, enc_context)
+    b.dropout(attention)
     attention = b.norm2(attention + masked_attention)
     forward(attention, b)
 end
 
 function (b::Block)(context::A) where {A<:AbstractArray}
     attention, attention_score = b.mha(context)
+    b.dropout(attention)
     attention = b.norm2(attention + context)
     forward(attention, b)
 end

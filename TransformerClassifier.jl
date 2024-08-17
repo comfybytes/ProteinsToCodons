@@ -54,10 +54,8 @@ function generate(sequence::LongAA, model::TransformerClassifier, cds_data::CDSD
 
     sequence = aa_tokenizer(sequence)
     sequence = reshape(sequence, size(sequence, 1), 1)
-
-    context = model.encoder(sequence)
-    logits = model.linear(context) |> cpu
-    logits = softmax(logits)
+    context = model(sequence)
+    logits = softmax(context) |> cpu
     logits = map(x -> x[1], argmax(logits, dims=1))
     logits = reshape(logits, size(logits, 2))
     output = cd_tokenizer(logits)
@@ -74,9 +72,8 @@ function generate(sequences::Vector{LongAA}, model::TransformerClassifier, cds_d
 
     sequences = aa_tokenizer(sequences)
 
-    context = model.encoder(sequences)
-    logits = model.linear(context) |> cpu
-    logits = softmax(logits)
+    context = model(sequences)
+    logits = softmax(context) |> cpu
     logits = map(x -> x[1], argmax(logits, dims=1))
     logits = reshape(logits, size(logits, 2), size(logits, 3))
     output = cd_tokenizer(logits)
@@ -90,7 +87,7 @@ function train_model(model::TransformerClassifier, cds_data::CDSData, epochs::In
     CUDA.device_reset!()
 
     model = model |> device
-    opt_state = Flux.setup(Adam(0.001,(0.9, 0.98)), model) |> device
+    opt_state = Flux.setup(Adam(), model) |> device
 
     aa_tokenizer = Tokenizer(cds_data.aa_alphabet)
     cd_tokenizer = CodonTokenizer()
@@ -105,11 +102,12 @@ function train_model(model::TransformerClassifier, cds_data::CDSData, epochs::In
     x_test = Array(x_test) |> device
     y_test = Array(y_test) |> device
 
-    es = Flux.early_stopping(Flux.logitcrossentropy, 20 , init_score = 10)
+    es = Flux.early_stopping(Flux.logitcrossentropy, 3 , init_score = 5)
 
     @showprogress desc="Training Model..." for epoch in 1:epochs
         Flux.train!(model, train_set, opt_state) do m, x, y
-            loss = Flux.logitcrossentropy(m(x), y)
+            smoothed = Flux.label_smoothing(y, 0.1f0)
+            loss = Flux.logitcrossentropy(m(x), smoothed)
         end
         #if es(model(x_test), y_test)
         #    @info "Stopped training earlier at Epoch: $epoch out of $epochs due to increasing loss on test set"
