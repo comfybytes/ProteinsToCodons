@@ -1,11 +1,17 @@
 using BioSequences, Flux, LinearAlgebra
+
 """
-Create a Tokenizer
+    PositionEncoding(d_model::Int, max_len::Int)
+
+Creates a Tokenizer, which transforms sequences of amino acids or DNA into matrices of positive integers.
+Also provides a special CodonTokenizer with a predefined alphabet for codons.
+The Tokenizer saves two dictionaries, one for encoding to positive integers and one for decoding to amino acids or DNA.
+Additionally a dictionary for one hot encoding is saved, used for DNA during the model training process.
+
 # Arguments
-- `alphabet`: a vector of symbols used for the Tokenizer
-# Usage
-WIP
+- `alphabet`: a vector of unique tokens within the expected sequences
 """
+
 struct Tokenizer
     lookup_encode::Dict
     lookup_decode::Dict
@@ -39,6 +45,7 @@ function (tok::Tokenizer)(array::T) where {T<:Union{Matrix{Int64},Vector{Int64}}
     map(t -> get(tok.lookup_decode, t, 0), array)
 end
 
+# creates a one hot encoding for DNA sequences used during training
 function target(vec::T, tok::Tokenizer) where {T<:Union{Vector{LongDNA},Vector{Vector{LongSequence{DNAAlphabet{4}}}}}}
     matrix = hcat(map(t -> collect(t), vec)...)
     dim_1 = size(matrix, 1)
@@ -48,6 +55,7 @@ function target(vec::T, tok::Tokenizer) where {T<:Union{Vector{LongDNA},Vector{V
     matrix = reshape(matrix, length(tok.onehot_encode), dim_1, dim_2)
 end
 
+# CodonTokenizer used for Encoder-only Transformer
 function CodonTokenizer()
     codons = [
         dna"TTT",dna"TTC",dna"TTA",dna"TTG",
@@ -69,3 +77,9 @@ function CodonTokenizer()
     
     Tokenizer(codons)
 end
+
+# seperates DNA sequences into groups of three to create codons
+function seq_to_codons(dna::Vector{LongDNA})
+    map(seq -> [seq[i:i+2] for i in 1:3:length(seq)],dna)
+end
+
