@@ -1,13 +1,16 @@
 using Flux
 
 """
-Creates an Attention Block, including Layer Normalization and a 2 layer Feed Forward Network
-# Arguments
-- `d_model`: dimensions of model. input and output must be this size. Default 240
-- `n_heads`: number of attention heads. Default 4
-- (optional) `activation`: Activation Function for Feed-Forward Network. Default ReLU
+    Block(d_model::Int, d_hidden::Int, n_heads, p_drop::Float64)
 
-`d_model` must be divisible by `n_heads`.
+Creates an Attention Block, including Multi-Head-Attention, Layer Normalization and a Feed-Forward Network.
+Feed-Forward Network consists of 2 Dense Layers, first one with ReLU activation, second one without activation.
+
+# Arguments
+
+- `d_model`: dimensions of model. input and output must be this size. Default 256
+- `n_heads`: number of attention heads. Must equally divide `d_model`. Default 2
+- `p_drop`: probability for dropout. Default 0.1
 """
 struct Block
     feed_forward1::Dense
@@ -23,9 +26,9 @@ end
 Flux.@functor Block
 
 function Block(
-    d_model::Int=16,
-    d_hidden::Int=32,
-    n_heads::Int=1,
+    d_model::Int=256,
+    d_hidden::Int=1024,
+    n_heads::Int=2,
     p_drop::Float64=0.1,
 )
 
@@ -43,6 +46,7 @@ function Block(
     )
 end
 
+# Block for Decoder includes Masked Attention and Cross Attention
 function (b::Block)(enc_context::A, context::A, mask::M=nothing) where {A<:AbstractArray,M<:Union{AbstractArray{Bool}, Nothing}}
     masked_attention = b.norm1(context)
     masked_attention, attention_score = b.masked_mha(masked_attention, mask=mask)
@@ -53,6 +57,7 @@ function (b::Block)(enc_context::A, context::A, mask::M=nothing) where {A<:Abstr
     forward(attention, b)
 end
 
+# Block for Encoder includes Self Attention
 function (b::Block)(context::A) where {A<:AbstractArray}
     attention = b.norm2(context)
     attention, attention_score = b.mha(attention)
@@ -60,6 +65,7 @@ function (b::Block)(context::A) where {A<:AbstractArray}
     forward(attention, b)
 end
 
+# Feed-Forward-Network
 function forward(attention, b::Block)
     ff_output = b.norm3(attention)
     ff_output = b.feed_forward1(ff_output)
