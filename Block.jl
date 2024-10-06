@@ -13,6 +13,7 @@ Feed-Forward Network consists of 2 Dense Layers, first one with ReLU activation,
 - `n_heads`: number of attention heads. Must equally divide `d_model`. Default 2
 - `p_drop`: probability for dropout. Default 0.1
 """
+
 struct Block
     feed_forward1::Dense
     feed_forward2::Dense

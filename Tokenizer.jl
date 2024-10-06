@@ -1,7 +1,7 @@
 using BioSequences, Flux, LinearAlgebra
 
 """
-    PositionEncoding(d_model::Int, max_len::Int)
+    Tokenizer(alphabet)
 
 Creates a Tokenizer, which transforms sequences of amino acids or DNA into matrices of positive integers.
 Also provides a special CodonTokenizer with a predefined alphabet for codons.

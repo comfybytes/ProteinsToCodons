@@ -19,6 +19,7 @@ Returns a context, which can be used by the Decoder or can be independetly used 
 - `p_drop`: probability for dropout. Default 0.1
 - `max_len`: maximum sequence length. Default 1000
 """
+
 struct Encoder
     prot_embedder::Embedding
     pos_encoder::PositionEncoding
