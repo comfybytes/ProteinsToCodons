@@ -3,12 +3,13 @@ using Flux
 """
     Block(d_model::Int, d_hidden::Int, n_heads, p_drop::Float64)
 
-Creates an Attention Block, including Multi-Head-Attention, Layer Normalization and a Feed-Forward Network.
+Creates an Attention Block used by Encoder and Decoder, including Multi-Head-Attention, Layer Normalization and a Feed-Forward Network.
 Feed-Forward Network consists of 2 Dense Layers, first one with ReLU activation, second one without activation.
 
 # Arguments
 
 - `d_model`: dimensions of model. input and output must be this size. Default 256
+- `d_hidden`: dimensions of the hidden layer in the feed-forward network. Default 1024
 - `n_heads`: number of attention heads. Must equally divide `d_model`. Default 2
 - `p_drop`: probability for dropout. Default 0.1
 """
@@ -31,8 +32,6 @@ function Block(
     n_heads::Int=2,
     p_drop::Float64=0.1,
 )
-
-    d_model % n_heads == 0 || throw(ArgumentError("d_model = $(d_model) should be divisible by nheads = $(n_heads)"))
 
     Block(
         Dense(d_model => d_hidden, relu),
