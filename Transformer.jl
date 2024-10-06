@@ -6,6 +6,23 @@ include("Decoder.jl")
 using Flux, BioSequences, CUDA, cuDNN, Dates, ProgressMeter, Serialization
 using SeqDL, SeqDL.Data, SeqDL.Util
 
+"""
+    Transformer(cds_data::CDSData, d_model::Int, d_hidden::Int, n_heads::Int, n_layers::Int, p_drop::Float64, max_len::Int)
+
+Creates an Encoder-Decoder Transformer. 
+Can be trained using the `train_model` function. 
+Can generate an output for a sequence with `generate` function.
+
+# Arguments
+- `cds_data`: CDSData containing data for an organism
+- `d_model`: dimensions of model. input and output must be this size. Default 256
+- `d_hidden`: dimensions of the hidden layer in the feed-forward network. Default 1024
+- `n_heads`: number of attention heads. Must equally divide `d_model`. Default 2
+- `n_layers`: number of sequential Encoders. Default 2
+- `p_drop`: probability for dropout. Default 0.1
+- `max_len`: maximum sequence length. Default 1000
+"""
+
 struct Transformer
     d_model::Int
     d_hidden::Int
@@ -22,8 +39,8 @@ Flux.@functor Transformer
 
 function Transformer(
     cds_data::CDSData,
-    d_model::Int=16,
-    d_hidden::Int=32,
+    d_model::Int=256,
+    d_hidden::Int=1024,
     n_heads::Int=1,
     n_layers::Int=2,
     p_drop::Float64=0.1,
@@ -43,13 +60,30 @@ function Transformer(
     )
 end
 
-function (t::Transformer)(prots::A, dna::A) where {A<:AbstractArray} # Function For Training
+# Function for Training. Functor links together encoder and decoder followed by a linear transformation
+function (t::Transformer)(prots::A, dna::A) where {A<:AbstractArray}
     enc_context = t.encoder(prots)
     dec_out = t.decoder(enc_context, dna, true)
     t.linear(dec_out)
 end
 
-function generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegpu::Bool=true) # Function For Inference
+"""
+    generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegpu::Bool)
+
+Function for auto-regressive token-by-token generation of DNA for a given sequence of amino acids.
+Generates DNA tokens until 3-times the length of the amino acid sequence is reached.
+Uses an empty context to start ouput generation.
+Consumes the previously generated context to generate the next context.
+Returns the predicted DNA sequence.
+
+# Arguments
+- `sequence`: sequence of amino acids
+- `model`: The created Transformer model
+- `cds_data`: CDSData containing data for an organism
+- `usegpu`: Whether or not to use NVIDIA GPU during inference
+"""
+
+function generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegpu::Bool=true)
     device = usegpu ? gpu : cpu
     model = model |> device
 
@@ -74,6 +108,21 @@ function generate(sequence::LongAA, model::Transformer, cds_data::CDSData, usegp
     output = dna_tokenizer(output)
     output = LongDNA{4}(output)
 end
+
+"""
+    train_model(model::Transformer, cds_data::CDSData, epochs::Int, usegpu::Bool)
+
+Function for model training.
+Creates Tokenizers, one-hot encodes the labeled data, randomly shuffles the order of sequences and trains in batches.
+Uses Early Stopping and logit cross-entropy.
+Returns a trained model.
+
+# Arguments
+- `model`: The created Transformer model
+- `cds_data`: CDSData containing data for an organism
+- `epochs`: Number of epochs to train the model for
+- `usegpu`: Whether or not to use NVIDIA GPU during inference
+"""
 
 function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, usegpu::Bool=true)
     @info "Preparing model for training"
@@ -115,49 +164,3 @@ function train_model(model::Transformer, cds_data::CDSData, epochs::Int=100, use
     return model
 end
 
-function save_model(model::Transformer, name::String, path::String="models/")
-    if !isdir(path)
-        mkdir(path)
-    end
-
-    model = cpu(model)
-    model_state = Flux.state(model)
-    d_model = model.d_model
-    d_hidden = model.d_hidden
-    n_heads = model.n_heads
-    n_layers = model.n_layers
-
-    model_name = "$(name)_$(now())_$(d_model)_$(d_hidden)_$(n_heads)_$(n_layers)"
-    jldsave("$(path)$(model_name).jld2"; model_state)
-    @info "Sucessfully saved model: $model_name"
-end
-
-function load_model(name::String, cds_data::CDSData, path::String="models/")
-    name = endswith(name, ".jld2") ? name : name * ".jld2"
-    model_state = JLD2.load("$(path)$(name)", "model_state")
-    model = Transformer(
-        cds_data,
-        model_state.d_model,
-        model_state.d_hidden,
-        model_state.n_heads,
-        model_state.n_layers,
-        model_state.p_drop,
-        model_state.max_len)
-    Flux.loadmodel!(model, model_state)
-end
-
-function get_cds(species::String)
-    @info "Reading CDS Data"
-    cds_files = Dict(
-        "athaliana" => "athaliana-cds-d0002.jls",
-        "celegans" => "celegans-cds-d0002.jls",
-        "creinhardtii" => "creinhardtii-cds-d0002.jls",
-        "drerio" => "drerio-cds-d0002.jls",
-        "ecoli" => "ecoli-cds-d0002.jls",
-        "hsapiens" => "hsapiens-cds-d0002.jls",
-        "scerevisiae" => "scerevisiae-cds-d0002.jls"
-    )
-    haskey(cds_files, species) || throw(ArgumentError("No fasta file available for $species, check spelling"))
-    file = cds_files[species]
-    deserialize("./datafiles/$(file)")
-end
